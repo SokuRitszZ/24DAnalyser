@@ -1,14 +1,16 @@
-package com.soku.a24danalysiser;
+package com.soku.a24danalysiser.activity;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Bundle;
 
-public class ModelListActivity extends AppCompatActivity {
+import com.soku.a24danalysiser.R;
+
+public class ModelDetailActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_model_list);
+        setContentView(R.layout.activity_model_detail);
     }
 }

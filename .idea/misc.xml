@@ -3,11 +3,15 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="..\:/Coding/Project/24DAnalysiser/app/src/main/res/layout/activity_add_model.xml" value="0.1" />
         <entry key="..\:/Coding/Project/24DAnalysiser/app/src/main/res/layout/activity_login.xml" value="0.18885869565217392" />
         <entry key="..\:/Coding/Project/24DAnalysiser/app/src/main/res/layout/activity_main.xml" value="0.30625" />
         <entry key="..\:/Coding/Project/24DAnalysiser/app/src/main/res/layout/activity_model_detail.xml" value="0.18885869565217392" />
         <entry key="..\:/Coding/Project/24DAnalysiser/app/src/main/res/layout/activity_model_list.xml" value="0.22" />
+        <entry key="..\:/Coding/Project/24DAnalysiser/app/src/main/res/layout/activity_preview_item.xml" value="0.19021739130434784" />
         <entry key="..\:/Coding/Project/24DAnalysiser/app/src/main/res/layout/activity_register.xml" value="0.18885869565217392" />
+        <entry key="..\:/Coding/Project/24DAnalysiser/app/src/main/res/layout/model_item.xml" value="0.21105072463768115" />
+        <entry key="..\:/Coding/Project/24DAnalysiser/app/src/main/res/layout/preview_item.xml" value="0.1" />
       </map>
     </option>
   </component>

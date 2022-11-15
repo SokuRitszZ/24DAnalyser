@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ModelDetailActivity">
+    tools:context=".activity.ModelDetailActivity">
     <TextView
         android:id="@+id/tv_title"
         android:layout_width="match_parent"
