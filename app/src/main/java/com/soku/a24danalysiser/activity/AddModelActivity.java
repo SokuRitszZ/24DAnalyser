@@ -1,17 +1,16 @@
 package com.soku.a24danalysiser.activity;
 
-import androidx.activity.result.ActivityResult;
-import androidx.activity.result.ActivityResultCallback;
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
+import static com.soku.a24danalysiser.utils.FileUtil.createImageFile;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
 
 import android.app.Activity;
+import android.content.DialogInterface;
 import android.content.Intent;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
@@ -19,9 +18,9 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Looper;
 import android.provider.MediaStore;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.GridLayout;
 import android.widget.ImageView;
@@ -34,16 +33,13 @@ import com.soku.a24danalysiser.utils.Compresser;
 import com.soku.a24danalysiser.utils.Constant;
 import com.yalantis.ucrop.UCrop;
 
-
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.channels.FileLockInterruptionException;
-import java.text.SimpleDateFormat;
+
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -93,12 +89,7 @@ public class AddModelActivity extends AppCompatActivity {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                View view = newItem();
-                ImageView ivPhoto = view.findViewById(R.id.iv_photo);
-                ivPhoto.setImageURI(data);
-                glList.addView(view, getLayoutParams());
-                uris.add(data);
-                views.add(view);
+                addNewView(data);
             }
             break;
             case REQUEST_CAMERA: {
@@ -131,7 +122,7 @@ public class AddModelActivity extends AppCompatActivity {
         if (intent.resolveActivity(getPackageManager()) != null) {
             File photo = null;
             try {
-                photo = createImageFile();
+                photo = createImageFile(getExternalFilesDir(Environment.DIRECTORY_PICTURES));
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -197,6 +188,35 @@ public class AddModelActivity extends AppCompatActivity {
         client.newCall(request).enqueue(callback);
     }
 
+    private void addNewView(Uri data) {
+        View view = newItem();
+        ImageView ivPhoto = view.findViewById(R.id.iv_photo);
+        ivPhoto.setImageURI(data);
+
+        Button btnRemove = view.findViewById(R.id.btn_remove);
+        btnRemove.setOnClickListener(v -> {
+            AlertDialog.Builder builder = new AlertDialog.Builder(AddModelActivity.this);
+            builder.setTitle("提示：");
+            builder.setMessage(String.format("确认删除此图片？"));
+
+            builder.setNegativeButton("确定", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i) {
+                    AddModelActivity.this.runOnUiThread(() -> {
+                        glList.removeView(view);
+                    });
+                }
+            });
+            builder.setPositiveButton("取消", null);
+            builder.show();
+        });
+
+
+        glList.addView(view, getLayoutParams());
+        uris.add(data);
+        views.add(view);
+    }
+
     private void uploadImages(Integer id) {
         List<PreviewItem> list = new ArrayList<>();
         ModelListActivity.pre.put(id, list);
@@ -249,7 +269,6 @@ public class AddModelActivity extends AppCompatActivity {
         }
     }
 
-
     private byte[] File2Bytes(File file) throws IOException {
         FileInputStream fis = new FileInputStream(file);
         byte[] bytes = new byte[(int) file.length()];
@@ -275,15 +294,6 @@ public class AddModelActivity extends AppCompatActivity {
         params.topMargin = 20;
 
         return params;
-    }
-
-
-    private File createImageFile() throws IOException {
-        String timeStp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
-        String filename = String.format("JPEG%s", timeStp);
-        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
-        File image = File.createTempFile(filename, ".jpg", storageDir);
-        return image;
     }
 
     public void compressPhoto(Uri uri) throws IOException {

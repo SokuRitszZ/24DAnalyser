@@ -106,4 +106,17 @@ public class ModelServiceImpl implements ModelService {
     json.set("list", items);
     return json;
   }
+
+  @Override
+  public void removeModel(Integer id) {
+    photoMapper.delete(new QueryWrapper<ModelPhoto>().eq("model_id", id));
+    mapper.deleteById(id);
+    return ;
+  }
+
+  @Override
+  public void removePhoto(Integer id) {
+    photoMapper.deleteById(id);
+    return ;
+  }
 }

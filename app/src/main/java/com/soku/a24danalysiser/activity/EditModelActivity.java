@@ -1,10 +1,14 @@
 package com.soku.a24danalysiser.activity;
 
+import static com.soku.a24danalysiser.utils.FileUtil.createImageFile;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
 
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -18,6 +22,8 @@ import android.util.Log;
 import android.util.LogPrinter;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.GridLayout;
 import android.widget.ImageView;
@@ -73,6 +79,7 @@ public class EditModelActivity extends AppCompatActivity {
     private List<Integer> ids = new ArrayList<>();
     private List<Double> oldDoubles = new ArrayList<>();
     private List<Uri> uris = new ArrayList<>();
+    private List<PreviewItem> list;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -95,7 +102,7 @@ public class EditModelActivity extends AppCompatActivity {
                 if (intent == null) break;
                 Uri data = UCrop.getOutput(intent);
                 try {
-                    compressPhoto(data);
+                    Compresser.compressPhoto(data);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -135,7 +142,7 @@ public class EditModelActivity extends AppCompatActivity {
         if (intent.resolveActivity(getPackageManager()) != null) {
             File photo = null;
             try {
-                photo = createImageFile();
+                photo = createImageFile(getExternalFilesDir(Environment.DIRECTORY_PICTURES));
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -255,54 +262,18 @@ public class EditModelActivity extends AppCompatActivity {
 
     private void loadPhotos() {
         if (!ModelListActivity.pre.containsKey(id)) {
-            requestForPreviewItems();
+            ModelListActivity.requestForPreviewItems(id, new Thread(() -> {
+                EditModelActivity.this.runOnUiThread(() -> {
+                    showItems();
+                });
+            }));
         } else {
             showItems();
         }
     }
 
-    private void requestForPreviewItems() {
-        List<PreviewItem> list = new ArrayList<>();
-        ModelListActivity.pre.put(id, list);
-        RequestBody body = new FormBody
-                .Builder()
-                .add("id", "" + id)
-                .build();
-        Request request = new Request.Builder()
-                .url(Constant.URL("/model/getPhotos"))
-                .post(body)
-                .build();
-        OkHttpClient client = new OkHttpClient();
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                Looper.prepare();
-                Toast.makeText(EditModelActivity.this, "发生预期外错误，获取失败", Toast.LENGTH_SHORT).show();
-                Looper.loop();
-            }
-
-            @Override
-            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
-                JSONObject json = new JSONObject(response.body().string());
-                JSONArray jsonArray = json.getJSONArray("list");
-
-                EditModelActivity.this.runOnUiThread(() -> {
-                    int n = jsonArray.size();
-                    for (int i = 0; i < n; ++i) {
-                        JSONObject item = jsonArray.getJSONObject(i);
-                        Integer id = item.getInt("id");
-                        byte[] photo = item.getBytes("photo");
-                        Double preview = item.getDouble("preview");
-                        list.add(new PreviewItem(id, photo, preview));
-                    }
-                    showItems();
-                });
-            }
-        });
-    }
-
     private void showItems() {
-        List<PreviewItem> list = ModelListActivity.pre.get(id);
+        list = ModelListActivity.pre.get(id);
         for (PreviewItem item : list) {
             byte[] photo = item.getPhoto();
             Double preview = item.getPreview();
@@ -320,6 +291,22 @@ public class EditModelActivity extends AppCompatActivity {
 
             ivPhoto.setImageURI(uri);
             etPreview.setText("" + preview);
+
+            Button btnRemove = view.findViewById(R.id.btn_remove);
+            btnRemove.setOnClickListener(v -> {
+                AlertDialog.Builder builder = new AlertDialog.Builder(EditModelActivity.this);
+                builder.setTitle("提示：");
+                builder.setMessage(String.format("确认删除此图片？"));
+
+                builder.setNegativeButton("确定", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        removePreview(view, item.getId());
+                    }
+                });
+                builder.setPositiveButton("取消", null);
+                builder.show();
+            });
 
             glList.addView(view, getLayoutParams());
             oldDoubles.add(preview);
@@ -354,14 +341,6 @@ public class EditModelActivity extends AppCompatActivity {
         return params;
     }
 
-    private File createImageFile() throws IOException {
-        String timeStp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
-        String filename = String.format("JPEG%s", timeStp);
-        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
-        File image = File.createTempFile(filename, ".jpg", storageDir);
-        return image;
-    }
-
     private void modifyPhoto(Integer id, Double preview) {
         RequestBody body = new FormBody
                 .Builder()
@@ -387,18 +366,41 @@ public class EditModelActivity extends AppCompatActivity {
         });
     }
 
-    public void compressPhoto(Uri uri) throws IOException {
-        String path = uri.getPath();
-        File file = new File(path);
-        FileInputStream fis = new FileInputStream(file);
-        byte[] fileBytes = new byte[(int) file.length()];
-        fis.read(fileBytes);
-        fis.close();
-        Bitmap bitmap = Compresser.compress(BitmapFactory.decodeByteArray(fileBytes, 0, fileBytes.length), 50);
-        FileOutputStream fos = new FileOutputStream(file);
-        BufferedOutputStream bos = new BufferedOutputStream(fos);
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, bos);
-        bos.flush();
-        bos.close();
+    private void removePreview(View view, Integer id) {
+        glList.removeView(view);
+        int i = views.indexOf(view);
+
+        oldDoubles.remove(i);
+        views.remove(i);
+        ids.remove(i);
+        list.remove(i);
+        requestRemovePhoto(id);
+    }
+
+    private void requestRemovePhoto(Integer id) {
+        RequestBody body = new FormBody
+                .Builder()
+                .add("id", "" + id)
+                .build();
+        Request request = new Request.Builder()
+                .url(Constant.URL("/model/removePhoto"))
+                .post(body)
+                .build();
+        OkHttpClient client = new OkHttpClient();
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                Looper.prepare();
+                Toast.makeText(EditModelActivity.this, "发生预期外错误，删除失败", Toast.LENGTH_SHORT).show();
+                Looper.loop();
+            }
+
+            @Override
+            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                Looper.prepare();
+                Toast.makeText(EditModelActivity.this, "删除成功", Toast.LENGTH_SHORT).show();
+                Looper.loop();
+            }
+        });
     }
 }

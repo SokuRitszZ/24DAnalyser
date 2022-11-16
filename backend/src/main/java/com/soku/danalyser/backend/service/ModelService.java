@@ -17,4 +17,8 @@ public interface ModelService {
   JSONObject get(Integer id);
 
   JSONObject getPhotos(Integer id);
+
+  void removeModel(Integer id);
+
+  void removePhoto(Integer id);
 }

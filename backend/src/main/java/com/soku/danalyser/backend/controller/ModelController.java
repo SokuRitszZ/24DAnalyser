@@ -56,4 +56,16 @@ public class ModelController {
     Integer id = Integer.parseInt(data.get("id"));
     return service.getPhotos(id);
   }
+
+  @PostMapping("/remove")
+  public void remove(@RequestParam Map<String, String> data) {
+    Integer id = Integer.parseInt(data.get("id"));
+    service.removeModel(id);
+  }
+
+  @PostMapping("/removePhoto")
+  public void removePhoto(@RequestParam Map<String, String> data) {
+    Integer id = Integer.parseInt(data.get("id"));
+    service.removePhoto(id);
+  }
 }
