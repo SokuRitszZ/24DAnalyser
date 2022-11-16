@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.soku.a24danalysiser">
-    <!-- 网络访问权限 -->
+    package="com.soku.a24danalysiser" >
+    <!-- 相机权限 -->
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="true" /> <!-- 网络访问权限 -->
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
@@ -15,9 +18,23 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.24DAnalysiser"
         android:usesCleartextTraffic="true"
-        tools:targetApi="31">
+        tools:targetApi="31" >
         <activity
-            android:name=".ModelItem"
+            android:name=".activity.EditModelActivity"
+            android:exported="false" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="com.soku.a24danalysiser.filepvd"
+            android:exported="false"
+            android:grantUriPermissions="true" >
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+        <activity
+            android:name=".activity.item.ModelItem"
             android:exported="false" />
         <activity
             android:name=".activity.item.PreviewItem"
@@ -39,13 +56,18 @@
             android:exported="false" />
         <activity
             android:name=".activity.MainActivity"
-            android:exported="true">
+            android:exported="true" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name="com.yalantis.ucrop.UCropActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+            tools:ignore="MissingClass" />
     </application>
 
 </manifest>

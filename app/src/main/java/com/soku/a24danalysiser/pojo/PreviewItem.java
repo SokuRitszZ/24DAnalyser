@@ -1,12 +1,16 @@
 package com.soku.a24danalysiser.pojo;
 
-import android.content.Intent;
 import android.media.Image;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class PreviewItem {
-    private Image image;
-    private Intent preview;
+    private Integer id;
+    private byte[] photo;
+    private Double preview;
 }

@@ -1,37 +1,28 @@
 package com.soku.a24danalysiser.activity;
 
-import androidx.annotation.LongDef;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
-import android.nfc.Tag;
 import android.os.Bundle;
 import android.os.Looper;
-import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
-import android.widget.RadioButton;
-import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.material.tabs.TabLayout;
 import com.soku.a24danalysiser.R;
 import com.soku.a24danalysiser.utils.Constant;
 
 import java.io.IOException;
 
 import cn.hutool.json.JSONObject;
-import kotlin.Pair;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.FormBody;
-import okhttp3.Headers;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
-import okhttp3.internal.http2.Header;
 
 public class LoginActivity extends AppCompatActivity {
     EditText etUsername;

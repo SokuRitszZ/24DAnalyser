@@ -13,4 +13,6 @@ public class ModelDetailActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_model_detail);
     }
+
+
 }

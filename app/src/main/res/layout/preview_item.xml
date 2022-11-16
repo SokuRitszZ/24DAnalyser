@@ -25,6 +25,6 @@
         android:layout_column="1"
         android:layout_columnWeight="2"
         android:hint="预测值"
-        android:inputType="number"
+        android:inputType="numberDecimal"
         />
 </LinearLayout>

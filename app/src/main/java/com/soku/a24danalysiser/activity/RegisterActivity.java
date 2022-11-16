@@ -80,7 +80,7 @@ public class RegisterActivity extends AppCompatActivity {
     }
 
     public void handleClickToLoginBtn(View view) {
-        startActivity(new Intent(this, LoginActivity.class));
+        finish();
     }
 
     private void register(String username, String password, String confirmedPassword, Callback callback) {
