@@ -8,12 +8,29 @@
 
 
 
+## 使用方法
+
+1、在`backend`中的`sql/*.sql`文件进行DDL。
+
+2、修改`backend`中配置文件中的数据库相关的配置。
+
+3、启动`backend(Spring Boot)`服务。
+
+4、通过`ipconfig`查询`WLAN`分配本机的`IPv4`地址。
+
+5、修改前端中`utils.Constant.BASE_URL`为上述查询到的`IP:8080`
+
+6、如若使用真机测试，请确保真机连接服务端所连接的`WIFI`。
+
+
+
 ## 技术栈
 
 ### 前端
 
 - 语言
-  - **Java**
+  - **Java JDK-1.8**
+  - **API 32 min 23**
 
 - 依赖
 
@@ -58,7 +75,9 @@
 
 #### 账户
 
-最简单基本的功能，后端数据库建立用户表，字段有`id`、`username`、`password`，登录相当于用`username`和`password`查询。
+最简单基本的功能，后端数据库建立用户表，字段有`id`、`username`、`password`，登录相当于用`username`和`password`查询。登陆成功后在响应体中加入`id`给予前端保存方便后续申请资源。
+
+如若需要更加安全可以在后端通过依赖`SpringSecurity`与`JWT-Token`来实现，返回前端的`id`则用其生成的`JWT-Token`来取代。
 
 
 
