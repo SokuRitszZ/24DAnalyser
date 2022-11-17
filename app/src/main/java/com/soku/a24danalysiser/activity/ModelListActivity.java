@@ -16,9 +16,6 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.media.MediaActionSound;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -28,8 +25,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.GridLayout;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -41,9 +36,7 @@ import com.yalantis.ucrop.UCrop;
 
 import java.io.File;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -116,7 +109,7 @@ public class ModelListActivity extends AppCompatActivity {
         setContentView(R.layout.activity_model_list);
 
         loadViews();
-        getItems();
+        requestItems();
 
         launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), new ActivityResultCallback<ActivityResult>() {
             @Override
@@ -180,11 +173,7 @@ public class ModelListActivity extends AppCompatActivity {
         launcher.launch(new Intent(this, AddModelActivity.class));
     }
 
-    private void loadViews() {
-        glList = findViewById(R.id.gl_list);
-    }
-
-    private void getItems() {
+    private void requestItems() {
         RequestBody body = new FormBody
                 .Builder()
                 .add("id", "" + Constant.getId())
@@ -218,6 +207,37 @@ public class ModelListActivity extends AppCompatActivity {
                 });
             }
         });
+    }
+
+    private void requestRemoveModel(Integer id) {
+        RequestBody body = new FormBody
+                .Builder()
+                .add("id", "" + id)
+                .build();
+        Request request = new Request.Builder()
+                .url(Constant.URL("/model/remove"))
+                .post(body)
+                .build();
+        OkHttpClient client = new OkHttpClient();
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                Looper.prepare();
+                Toast.makeText(ModelListActivity.this, "发生预期外错误，删除失败", Toast.LENGTH_SHORT).show();
+                Looper.loop();
+            }
+
+            @Override
+            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                Looper.prepare();
+                Toast.makeText(ModelListActivity.this, "删除成功", Toast.LENGTH_SHORT).show();
+                Looper.loop();
+            }
+        });
+    }
+
+    private void loadViews() {
+        glList = findViewById(R.id.gl_list);
     }
 
     private void showItems() {
@@ -313,32 +333,5 @@ public class ModelListActivity extends AppCompatActivity {
         views.remove(views.indexOf(view));
         glList.removeView(view);
         requestRemoveModel(id);
-    }
-
-    private void requestRemoveModel(Integer id) {
-        RequestBody body = new FormBody
-                .Builder()
-                .add("id", "" + id)
-                .build();
-        Request request = new Request.Builder()
-                .url(Constant.URL("/model/remove"))
-                .post(body)
-                .build();
-        OkHttpClient client = new OkHttpClient();
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                Looper.prepare();
-                Toast.makeText(ModelListActivity.this, "发生预期外错误，删除失败", Toast.LENGTH_SHORT).show();
-                Looper.loop();
-            }
-
-            @Override
-            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
-                Looper.prepare();
-                Toast.makeText(ModelListActivity.this, "删除成功", Toast.LENGTH_SHORT).show();
-                Looper.loop();
-            }
-        });
     }
 }

@@ -1,6 +1,8 @@
 package com.soku.a24danalysiser.activity;
 
+import static com.soku.a24danalysiser.utils.FileUtil.File2Bytes;
 import static com.soku.a24danalysiser.utils.FileUtil.createImageFile;
+import static com.soku.a24danalysiser.utils.FileUtil.dumpToPhotoUri;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -10,8 +12,6 @@ import androidx.core.content.FileProvider;
 
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -19,10 +19,8 @@ import android.os.Looper;
 import android.provider.MediaStore;
 import android.text.Editable;
 import android.util.Log;
-import android.util.LogPrinter;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.GridLayout;
@@ -36,24 +34,12 @@ import com.soku.a24danalysiser.utils.Compresser;
 import com.soku.a24danalysiser.utils.Constant;
 import com.yalantis.ucrop.UCrop;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.LongStream;
 
-import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -132,12 +118,115 @@ public class EditModelActivity extends AppCompatActivity {
     }
 
     public void handleClickAddPhotoBtn(View view) {
-        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.setType("image/*");
-        startActivityForResult(intent, REQUEST_PHOTOLIB);
+       openPhotoLib();
     }
 
     public void handleClickTakePhotoBtn(View view) {
+        openCamera();
+    }
+
+    public void handleClickOkBtn(View view) {
+        finishEdit();
+        // 比较差异
+
+    }
+
+    private void requestModifyPhoto(Integer id, Double preview) {
+        RequestBody body = new FormBody
+                .Builder()
+                .add("id", "" + id)
+                .add("preview", "" + preview)
+                .build();
+        Request request = new Request.Builder()
+                .url(Constant.URL("/model/modifyPhoto"))
+                .post(body)
+                .build();
+        OkHttpClient client = new OkHttpClient();
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                Looper.prepare();
+                Toast.makeText(EditModelActivity.this, "发生预期外错误，修改失败", Toast.LENGTH_SHORT).show();
+                Looper.loop();
+            }
+
+            @Override
+            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+            }
+        });
+    }
+
+    private void requestRemovePhoto(Integer id) {
+        RequestBody body = new FormBody
+                .Builder()
+                .add("id", "" + id)
+                .build();
+        Request request = new Request.Builder()
+                .url(Constant.URL("/model/removePhoto"))
+                .post(body)
+                .build();
+        OkHttpClient client = new OkHttpClient();
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                Looper.prepare();
+                Toast.makeText(EditModelActivity.this, "发生预期外错误，删除失败", Toast.LENGTH_SHORT).show();
+                Looper.loop();
+            }
+
+            @Override
+            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                Looper.prepare();
+                Toast.makeText(EditModelActivity.this, "删除成功", Toast.LENGTH_SHORT).show();
+                Looper.loop();
+            }
+        });
+    }
+
+    private void requestAddPhoto(Integer id, Double preview, File file, List<PreviewItem> list) {
+        MultipartBody.Builder builder = new MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart(
+                        "file",
+                        file.getName(),
+                        RequestBody.create(MediaType.parse("image/jpg"), file)
+                )
+                .addFormDataPart("preview", "" + preview)
+                .addFormDataPart("id", "" + id);
+        RequestBody requestBody = builder.build();
+        Request request = new Request.Builder()
+                .url(Constant.URL("/model/addPhoto"))
+                .post(requestBody)
+                .build();
+        OkHttpClient client = new OkHttpClient();
+        double finalPreview = preview;
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                Log.e("ERR", e.getMessage());
+                Looper.prepare();
+                Toast.makeText(EditModelActivity.this, "出现预期外的错误，上传失败", Toast.LENGTH_SHORT).show();
+                Looper.loop();
+            }
+
+            @Override
+            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                JSONObject json = new JSONObject(response.body().string());
+                String result = json.getStr("result");
+                Looper.prepare();
+                if (result.equals("fail"))
+                    Toast.makeText( EditModelActivity.this, String.format("上传失败：%s", json.getStr("message") ), Toast.LENGTH_SHORT)
+                            .show();
+                else {
+                    Integer newId = json.getInt("id");
+                    list.add(new PreviewItem(newId, File2Bytes(file), finalPreview));
+                }
+                Looper.loop();
+            }
+        });
+    }
+
+    private void openCamera() {
         Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         if (intent.resolveActivity(getPackageManager()) != null) {
             File photo = null;
@@ -154,8 +243,13 @@ public class EditModelActivity extends AppCompatActivity {
         }
     }
 
-    public void handleClickOkBtn(View view) {
-        // 比较差异
+    private void openPhotoLib() {
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType("image/*");
+        startActivityForResult(intent, REQUEST_PHOTOLIB);
+    }
+
+    private void finishEdit() {
         List<PreviewItem> list = ModelListActivity.pre.get(id);
         List<Double> newDoubles = new ArrayList<>();
         for (View _view : views) {
@@ -176,7 +270,7 @@ public class EditModelActivity extends AppCompatActivity {
             // 修改
             Integer id = ids.get(i);
             list.get(i).setPreview(newDouble);
-            modifyPhoto(id, newDouble);
+            requestModifyPhoto(id, newDouble);
         }
 
         // 添加
@@ -192,56 +286,9 @@ public class EditModelActivity extends AppCompatActivity {
             }
             String path = uri.getPath();
             File file = new File(path);
-            MultipartBody.Builder builder = new MultipartBody.Builder()
-                    .setType(MultipartBody.FORM)
-                    .addFormDataPart(
-                            "file",
-                            file.getName(),
-                            RequestBody.create(MediaType.parse("image/jpg"), file)
-                    )
-                    .addFormDataPart("preview", "" + preview)
-                    .addFormDataPart("id", "" + id);
-            RequestBody requestBody = builder.build();
-            Request request = new Request.Builder()
-                    .url(Constant.URL("/model/addPhoto"))
-                    .post(requestBody)
-                    .build();
-            OkHttpClient client = new OkHttpClient();
-            double finalPreview = preview;
-            client.newCall(request).enqueue(new Callback() {
-                @Override
-                public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                    Log.e("ERR", e.getMessage());
-                    Looper.prepare();
-                    Toast.makeText(EditModelActivity.this, "出现预期外的错误，上传失败", Toast.LENGTH_SHORT).show();
-                    Looper.loop();
-                }
-
-                @Override
-                public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
-                    JSONObject json = new JSONObject(response.body().string());
-                    String result = json.getStr("result");
-                    Looper.prepare();
-                    if (result.equals("fail"))
-                        Toast.makeText( EditModelActivity.this, String.format("上传失败：%s", json.getStr("message") ), Toast.LENGTH_SHORT)
-                                .show();
-                    else {
-                        Integer newId = json.getInt("id");
-                        list.add(new PreviewItem(newId, File2Bytes(file), finalPreview));
-                    }
-                    Looper.loop();
-                }
-            });
+            requestAddPhoto(id, preview, file, list);
         }
         finish();
-    }
-
-    private byte[] File2Bytes(File file) throws IOException {
-        FileInputStream fis = new FileInputStream(file);
-        byte[] bytes = new byte[(int) file.length()];
-        fis.read(bytes);
-        fis.close();
-        return bytes;
     }
 
     private void loadViews() {
@@ -280,7 +327,7 @@ public class EditModelActivity extends AppCompatActivity {
 
             Uri uri = null;
             try {
-                uri = dumpToPhotoUri(photo);
+                uri = dumpToPhotoUri(photo, getExternalFilesDir(Environment.DIRECTORY_PICTURES));
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -315,18 +362,6 @@ public class EditModelActivity extends AppCompatActivity {
         }
     }
 
-    private Uri dumpToPhotoUri(byte[] photo) throws IOException {
-        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
-        String filename = UUID.randomUUID().toString();
-        File file = File.createTempFile(filename, ".jpg", storageDir);
-        FileOutputStream fos = new FileOutputStream(file);
-        BufferedOutputStream bos = new BufferedOutputStream(fos);
-        bos.write(photo);
-        String path = file.getPath();
-        Uri uri = Uri.parse(path);
-        return uri;
-    }
-
     private View newItem() {
         return LayoutInflater.from(this).inflate(R.layout.preview_item, null);
     }
@@ -341,31 +376,6 @@ public class EditModelActivity extends AppCompatActivity {
         return params;
     }
 
-    private void modifyPhoto(Integer id, Double preview) {
-        RequestBody body = new FormBody
-                .Builder()
-                .add("id", "" + id)
-                .add("preview", "" + preview)
-                .build();
-        Request request = new Request.Builder()
-                .url(Constant.URL("/model/modifyPhoto"))
-                .post(body)
-                .build();
-        OkHttpClient client = new OkHttpClient();
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                Looper.prepare();
-                Toast.makeText(EditModelActivity.this, "发生预期外错误，修改失败", Toast.LENGTH_SHORT).show();
-                Looper.loop();
-            }
-
-            @Override
-            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
-            }
-        });
-    }
-
     private void removePreview(View view, Integer id) {
         glList.removeView(view);
         int i = views.indexOf(view);
@@ -375,32 +385,5 @@ public class EditModelActivity extends AppCompatActivity {
         ids.remove(i);
         list.remove(i);
         requestRemovePhoto(id);
-    }
-
-    private void requestRemovePhoto(Integer id) {
-        RequestBody body = new FormBody
-                .Builder()
-                .add("id", "" + id)
-                .build();
-        Request request = new Request.Builder()
-                .url(Constant.URL("/model/removePhoto"))
-                .post(body)
-                .build();
-        OkHttpClient client = new OkHttpClient();
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                Looper.prepare();
-                Toast.makeText(EditModelActivity.this, "发生预期外错误，删除失败", Toast.LENGTH_SHORT).show();
-                Looper.loop();
-            }
-
-            @Override
-            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
-                Looper.prepare();
-                Toast.makeText(EditModelActivity.this, "删除成功", Toast.LENGTH_SHORT).show();
-                Looper.loop();
-            }
-        });
     }
 }

@@ -17,6 +17,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void handleClickStartBtn(View view) {
+        start();
+    }
+
+    private void start() {
         finish();
         startActivity(new Intent(this, LoginActivity.class));
     }

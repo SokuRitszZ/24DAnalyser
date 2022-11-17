@@ -37,11 +37,6 @@ public class RegisterActivity extends AppCompatActivity {
         loadView();
     }
 
-    private void loadView() {
-        etUsername = findViewById(R.id.et_account);
-        etPassword = findViewById(R.id.et_password);
-        etConfirmedPassword = findViewById(R.id.et_confirmed_password);
-    }
 
     public void handleClickRegisterBtn(View view) {
         String username = etUsername.getText().toString();
@@ -81,6 +76,12 @@ public class RegisterActivity extends AppCompatActivity {
 
     public void handleClickToLoginBtn(View view) {
         finish();
+    }
+
+    private void loadView() {
+        etUsername = findViewById(R.id.et_account);
+        etPassword = findViewById(R.id.et_password);
+        etConfirmedPassword = findViewById(R.id.et_confirmed_password);
     }
 
     private void register(String username, String password, String confirmedPassword, Callback callback) {

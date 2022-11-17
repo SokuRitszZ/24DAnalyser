@@ -45,7 +45,6 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     public void handleClickLoginBtn(View view) {
-
         String username = etUsername.getText().toString();
         String password = etPassword.getText().toString();
 

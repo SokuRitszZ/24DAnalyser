@@ -1,5 +1,6 @@
 package com.soku.a24danalysiser.activity;
 
+import static com.soku.a24danalysiser.utils.Compresser.compressPhoto;
 import static com.soku.a24danalysiser.utils.FileUtil.createImageFile;
 
 import androidx.annotation.NonNull;
@@ -71,6 +72,7 @@ public class AddModelActivity extends AppCompatActivity {
         setContentView(R.layout.activity_add_model);
 
         imageUri = Uri.fromFile(new File(getExternalFilesDir(Environment.DIRECTORY_PICTURES), "test.jpg"));
+
         loadViews();
     }
 
@@ -110,14 +112,79 @@ public class AddModelActivity extends AppCompatActivity {
     }
 
     public void handleClickAddPhotoBtn(View view) {
-        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        // 设置内容类型为图片类型
-        intent.setType("image/*");
-        // 打开系统相册选择图片
-        startActivityForResult(intent, REQUEST_PHOTOLIB);
+        openPhotoLib();
     }
 
     public void handleClickTakePhotoBtn(View view) {
+        openCamera();
+    }
+
+    public void handleClickOkBtn(View view) {
+        addModel();
+    }
+
+    private void requestAddModel(String title, Callback callback) {
+        OkHttpClient client = new OkHttpClient();
+        RequestBody body = new FormBody
+                .Builder()
+                .add("title", title)
+                .add("userId", "" + Constant.getId())
+                .build();
+        Request request = new Request.Builder()
+                .url(Constant.URL("/model/add"))
+                .post(body)
+                .build();
+        client.newCall(request).enqueue(callback);
+    }
+
+    private void requestUploadImage(Integer id, File file, Double preview, List<PreviewItem> list) {
+        MultipartBody.Builder builder = new MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart(
+                        "file",
+                        file.getName(),
+                        RequestBody.create(MediaType.parse("image/jpg"), file)
+                )
+                .addFormDataPart("preview", "" + preview)
+                .addFormDataPart("id", "" + id);
+        RequestBody requestBody = builder.build();
+        Request request = new Request.Builder()
+                .url(Constant.URL("/model/addPhoto"))
+                .post(requestBody)
+                .build();
+        OkHttpClient client = new OkHttpClient();
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                Looper.prepare();
+                Toast.makeText(AddModelActivity.this, "出现预期外的错误，上传失败", Toast.LENGTH_SHORT).show();
+                Looper.loop();
+            }
+
+            @Override
+            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                JSONObject json = new JSONObject(response.body().string());
+                String result = json.getStr("result");
+                Looper.prepare();
+                if (result.equals("fail"))
+                    Toast.makeText( AddModelActivity.this, String.format("上传失败：%s", json.getStr("message") ), Toast.LENGTH_SHORT)
+                            .show();
+                else {
+                    Integer newId = json.getInt("id");
+                    list.add(new PreviewItem(newId, File2Bytes(file), preview));
+                }
+                Looper.loop();
+            }
+        });
+    }
+
+    private void openPhotoLib() {
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType("image/*");
+        startActivityForResult(intent, REQUEST_PHOTOLIB);
+    }
+
+    private void openCamera() {
         Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         if (intent.resolveActivity(getPackageManager()) != null) {
             File photo = null;
@@ -134,13 +201,9 @@ public class AddModelActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * 先创建，再把所有图片发送上去
-     * @param view
-     */
-    public void handleClickOkBtn(View view) {
+    private void addModel() {
         String title = etTitle.getText().toString();
-        createModel(title, new Callback() {
+        requestAddModel(title, new Callback() {
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
                 Looper.prepare();
@@ -174,20 +237,6 @@ public class AddModelActivity extends AppCompatActivity {
         });
     }
 
-    private void createModel(String title, Callback callback) {
-        OkHttpClient client = new OkHttpClient();
-        RequestBody body = new FormBody
-                .Builder()
-                .add("title", title)
-                .add("userId", "" + Constant.getId())
-                .build();
-        Request request = new Request.Builder()
-                .url(Constant.URL("/model/add"))
-                .post(body)
-                .build();
-        client.newCall(request).enqueue(callback);
-    }
-
     private void addNewView(Uri data) {
         View view = newItem();
         ImageView ivPhoto = view.findViewById(R.id.iv_photo);
@@ -203,7 +252,10 @@ public class AddModelActivity extends AppCompatActivity {
                 @Override
                 public void onClick(DialogInterface dialogInterface, int i) {
                     AddModelActivity.this.runOnUiThread(() -> {
+                        int i1 = uris.indexOf(data);
                         glList.removeView(view);
+                        uris.remove(i1);
+                        views.remove(i1);
                     });
                 }
             });
@@ -228,44 +280,7 @@ public class AddModelActivity extends AppCompatActivity {
             double preview = Double.parseDouble(etPreview.getText().toString());
             String path = uri.getPath();
             File file = new File(path);
-            MultipartBody.Builder builder = new MultipartBody.Builder()
-                    .setType(MultipartBody.FORM)
-                    .addFormDataPart(
-                            "file",
-                            file.getName(),
-                            RequestBody.create(MediaType.parse("image/jpg"), file)
-                    )
-                    .addFormDataPart("preview", "" + preview)
-                    .addFormDataPart("id", "" + id);
-            RequestBody requestBody = builder.build();
-            Request request = new Request.Builder()
-                    .url(Constant.URL("/model/addPhoto"))
-                    .post(requestBody)
-                    .build();
-            OkHttpClient client = new OkHttpClient();
-            client.newCall(request).enqueue(new Callback() {
-                @Override
-                public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                    Looper.prepare();
-                    Toast.makeText(AddModelActivity.this, "出现预期外的错误，上传失败", Toast.LENGTH_SHORT).show();
-                    Looper.loop();
-                }
-
-                @Override
-                public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
-                    JSONObject json = new JSONObject(response.body().string());
-                    String result = json.getStr("result");
-                    Looper.prepare();
-                    if (result.equals("fail"))
-                        Toast.makeText( AddModelActivity.this, String.format("上传失败：%s", json.getStr("message") ), Toast.LENGTH_SHORT)
-                                .show();
-                    else {
-                        Integer newId = json.getInt("id");
-                        list.add(new PreviewItem(newId, File2Bytes(file), preview));
-                    }
-                    Looper.loop();
-                }
-            });
+            requestUploadImage(id, file, preview, list);
         }
     }
 
@@ -294,20 +309,5 @@ public class AddModelActivity extends AppCompatActivity {
         params.topMargin = 20;
 
         return params;
-    }
-
-    public void compressPhoto(Uri uri) throws IOException {
-        String path = uri.getPath();
-        File file = new File(path);
-        FileInputStream fis = new FileInputStream(file);
-        byte[] fileBytes = new byte[(int) file.length()];
-        fis.read(fileBytes);
-        fis.close();
-        Bitmap bitmap = Compresser.compress(BitmapFactory.decodeByteArray(fileBytes, 0, fileBytes.length), 50);
-        FileOutputStream fos = new FileOutputStream(file);
-        BufferedOutputStream bos = new BufferedOutputStream(fos);
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, bos);
-        bos.flush();
-        bos.close();
     }
 }

@@ -15,7 +15,6 @@ import android.graphics.Paint;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
-import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -33,7 +32,7 @@ import cn.hutool.core.lang.Pair;
 
 public class ModelDetailActivity extends AppCompatActivity {
     Integer id;
-    Bitmap bitmap;
+    Bitmap photoBitmap;
     Bitmap modelBitmap;
     Uri uri;
     List<Pair<Double, Double>> pairs;
@@ -75,6 +74,10 @@ public class ModelDetailActivity extends AppCompatActivity {
     }
 
     public void handleClickShareBtn(View view) {
+        share();
+    }
+
+    private void share() {
         Bitmap sharedBitmap = getSharedBitmap();
         File sharedImageFile = null;
         try {
@@ -110,7 +113,7 @@ public class ModelDetailActivity extends AppCompatActivity {
         title = bundle.getString("title");
         String path = bundle.getString("path");
         uri = Uri.parse(path);
-        bitmap = BitmapFactory.decodeFile(path);
+        photoBitmap = BitmapFactory.decodeFile(path);
     }
 
     private void getPhotos() {
@@ -161,7 +164,7 @@ public class ModelDetailActivity extends AppCompatActivity {
         b = sumbd.equals(0d) ? 0 : sumbu / sumbd;
         a = averageY - b * averageX;
 
-        x = calculateGrey(bitmap);
+        x = calculateGrey(photoBitmap);
         y = b * x + a;
         maxX = Math.max(maxX, x);
         maxY = Math.max(maxY, y);
@@ -283,7 +286,7 @@ public class ModelDetailActivity extends AppCompatActivity {
 
         canvas.drawBitmap(modelBitmap, 0, 50, paint);
 
-        canvas.drawBitmap(smallerBitmap(this.bitmap, 400, 400), 0, 500, paint);
+        canvas.drawBitmap(smallerBitmap(this.photoBitmap, 400, 400), 0, 500, paint);
 
         paint.setColor(Color.BLACK);
         paint.setTextSize(30);
