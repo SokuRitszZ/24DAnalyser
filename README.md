@@ -52,7 +52,7 @@
   - **Lombok** 开发工具
   - **Hutool** 开发工具
   - **SpringBoot-JDBC** 数据库连接驱动
-  - **Mysql-Connector-J MySQL **连接驱动
+  - **Mysql-Connector-J MySQL**连接驱动
   - **MyBatisPlus** JPA支持
 
 
