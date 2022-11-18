@@ -29,7 +29,9 @@
 ### 前端
 
 - 语言
+
   - **Java JDK-1.8**
+  
   - **API 32 min 23**
 
 - 依赖
@@ -45,14 +47,23 @@
 ### 后端
 
 - 框架
+
   - **Spring Boot**
+  
 - 数据库
+
   - **MySQL**
+  
 - 依赖
+
   - **Lombok** 开发工具
+  
   - **Hutool** 开发工具
+  
   - **SpringBoot-JDBC** 数据库连接驱动
-  - **Mysql-Connector-J MySQL**连接驱动
+  
+  - **Mysql-Connector-J MySQL** 连接驱动
+  
   - **MyBatisPlus** JPA支持
 
 
@@ -60,13 +71,19 @@
 ## 功能
 
 - 主要
+
   - 通过一组用户自定义数据来预测其他图片中所表现的浓度。
 
 - 详情
+
   - 用户登录/注册
+  
   - 模型CRUD
+  
   - 模型数据CRUD
+  
   - 模型拟合（线性回归方程）
+  
   - 结果分享
 
 
